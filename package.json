@@ -4,8 +4,9 @@
   "description": "AI-powered real-time download security & verification Chrome Extension",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/trustEngine.test.js tests/recommendationEngine.test.js tests/sourceVerification.test.js tests/downloadParser.test.js tests/fileIntegrity.test.js tests/staticAnalysis.test.js"
-
+    "test": "node --test tests/*.test.js",
+    "firefox": "web-ext run --source-dir .",
+    "lint:ext": "web-ext lint --source-dir . --self-hosted"
   },
   "keywords": [
     "security",

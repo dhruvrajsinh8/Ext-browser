@@ -15,6 +15,7 @@ import {
   saveEmailScanRecord, getScannedEmailIds, markEmailIdsScanned
 } from "./modules/storageManager.js";
 import { setInFlightScan, getInFlightScan, removeInFlightScan, getAllInFlightScans } from "./modules/stateStore.js";
+import { checkDomainBlocklist } from "./modules/domainBlocklist.js";
 import { notifyResult, notifyEmailResult } from "./modules/notificationEngine.js";
 import { CACHE_TTL_MS } from "./modules/config.js";
 import { getValidAccessToken } from "./modules/emailAuth.js";
@@ -42,6 +43,15 @@ chrome.downloads.onCreated.addListener(async (item) => {
 
   const parsed = parseDownloadItem(freshItem);
   console.log("[SecureDownload AI] parsed download:", parsed);
+
+  // User blocklist is a hard stop that runs before any network work: if the
+  // user has explicitly blocked this domain there is nothing to analyse.
+  const blockCheck = checkDomainBlocklist(parsed.domain, settings.blockedDomains);
+  if (blockCheck.blocked) {
+    console.log("[SecureDownload AI] domain is on the user blocklist:", blockCheck.matchedEntry);
+    await handleBlockedDomain(parsed, blockCheck);
+    return;
+  }
 
   // Monitor & pause download while running the audit
   try {
@@ -189,6 +199,35 @@ async function runAnalysisPipeline(parsed, settings) {
   }
 
   chrome.runtime.sendMessage({ type: "SD_ANALYSIS_COMPLETE", record, autoResumed }).catch(() => {});
+}
+
+async function handleBlockedDomain(parsed, blockCheck) {
+  await chrome.downloads.cancel(parsed.downloadId).catch(() => {});
+  await chrome.downloads.removeFile(parsed.downloadId).catch(() => {});
+
+  const record = {
+    downloadId: parsed.downloadId,
+    filename: parsed.filename,
+    extension: parsed.extension,
+    category: parsed.category,
+    url: parsed.url,
+    domain: parsed.domain,
+    scannedAt: new Date().toISOString(),
+    trustScore: 0,
+    riskLevel: "dangerous",
+    recommendation: {
+      riskLevel: "dangerous",
+      emoji: "🔴",
+      headline: "Blocked by Your Blocklist",
+      detail: `Downloads from "${blockCheck.matchedEntry}" are blocked by your personal blocklist.`
+    },
+    details: { blocklist: blockCheck },
+    action: "deleted"
+  };
+
+  await saveScanRecord(record);
+  notifyResult(record, false);
+  chrome.runtime.sendMessage({ type: "SD_ANALYSIS_COMPLETE", record, autoResumed: false }).catch(() => {});
 }
 
 async function fetchSiteHeaders(url) {

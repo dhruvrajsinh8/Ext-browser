@@ -191,6 +191,7 @@ function defaultSettings() {
     safeBrowsingApiKey: "",
     nvdApiKey: "",
     extraTrustedDomains: [],
+    blockedDomains: [],       // user-defined hard blocklist, see modules/domainBlocklist.js
     knownGoodHashes: {},        // { filename_lowercase: sha256 }
     autoAnalyze: true,
     blockDangerousByDefault: false,

@@ -1,6 +1,23 @@
 // modules/notificationEngine.js
 // Module 11: Notification Engine.
 
+// Firefox's notifications API rejects the Chrome-only `buttons` property with a
+// synchronous validation error. Because notifyResult() is called from inside the
+// download pipeline, an unguarded throw there would abort the scan and resume the
+// download unscanned — so degrade to a plain notification instead of failing.
+function createNotification(id, options) {
+  try {
+    chrome.notifications.create(id, options);
+  } catch {
+    const { buttons: _unsupported, ...withoutButtons } = options;
+    try {
+      chrome.notifications.create(id, withoutButtons);
+    } catch (err) {
+      console.warn("[SecureDownload AI] notification could not be shown:", err);
+    }
+  }
+}
+
 export function notifyResult(record, autoResumed = false) {
   const { filename, trustScore, recommendation, action } = record;
 
@@ -22,7 +39,7 @@ export function notifyResult(record, autoResumed = false) {
       ? [{ title: "Delete File" }, { title: "View Details" }]
       : [{ title: "Resume Download" }, { title: "View Details" }];
 
-  chrome.notifications.create(`sd_${record.downloadId}`, {
+  createNotification(`sd_${record.downloadId}`, {
     type: "basic",
     iconUrl: chrome.runtime.getURL("icons/icon128.png"),
     title,
@@ -39,7 +56,7 @@ export function notifyEmailResult(emailRecord) {
   const { subject, senderDomain, findings } = emailRecord;
   const topFinding = findings[0]?.label || "Multiple phishing indicators detected";
 
-  chrome.notifications.create(`sd_email_${emailRecord.messageId}`, {
+  createNotification(`sd_email_${emailRecord.messageId}`, {
     type: "basic",
     iconUrl: chrome.runtime.getURL("icons/icon128.png"),
     title: "🎣 Suspected Phishing Email",

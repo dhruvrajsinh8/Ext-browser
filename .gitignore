@@ -1,0 +1,23 @@
+# Build output
+web-ext-artifacts/
+*.xpi
+*.zip
+
+# Dependencies
+node_modules/
+
+# macOS
+.DS_Store
+
+# Local env / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Editor
+.vscode/
+.idea/
+
+# Test downloads / scratch files
+*.pdf

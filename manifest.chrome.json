@@ -4,31 +4,22 @@
   "version": "1.0.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
-
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "securedownload-ai@techmangri2026",
-      "strict_min_version": "128.0"
-    }
-  },
-
   "permissions": [
     "downloads",
     "storage",
     "notifications",
     "alarms",
-    "activeTab"
+    "activeTab",
+    "identity"
   ],
   "host_permissions": [
     "https://*/*",
     "http://*/*"
   ],
-
   "background": {
-    "scripts": ["background.js"],
+    "service_worker": "background.js",
     "type": "module"
   },
-
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "SecureDownload AI",
@@ -45,12 +36,7 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-
-  "options_ui": {
-    "page": "options/options.html",
-    "open_in_tab": true
-  },
-
+  "options_page": "options/options.html",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }

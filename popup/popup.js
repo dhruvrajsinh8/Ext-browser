@@ -527,14 +527,74 @@ function renderFactors(record) {
     els.factorList.appendChild(note);
   }
 
-  const staticFindings = record.details?.staticAnalysis?.findings || [];
-  if (staticFindings.length) {
-    const box = document.createElement("div");
-    box.className = "factor-note";
-    box.innerHTML = `<strong>Findings:</strong><br>` +
-      staticFindings.map(f => `• ${escapeHtml(f.label)}`).join("<br>");
-    els.factorList.appendChild(box);
+  renderStaticFindings(record.details?.staticAnalysis);
+}
+
+const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+
+// Renders each finding as evidence rather than a bullet: what was observed,
+// why it matters in plain language, and the raw observation behind it. A user
+// can act on "imports VirtualAllocEx, WriteProcessMemory, CreateRemoteThread";
+// they cannot act on a number.
+function renderStaticFindings(staticAnalysis) {
+  const findings = staticAnalysis?.findings || [];
+  if (!findings.length) return;
+
+  const sorted = [...findings].sort(
+    (a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9)
+  );
+
+  const box = document.createElement("div");
+  box.className = "evidence-block";
+
+  const heading = document.createElement("div");
+  heading.className = "evidence-heading";
+  heading.textContent = `File inspection: ${findings.length} finding${findings.length === 1 ? "" : "s"}`;
+  box.appendChild(heading);
+
+  for (const f of sorted) {
+    const card = document.createElement("div");
+    card.className = `evidence-card evidence-${escapeHtml(f.severity)}`;
+
+    const mitreTag = f.mitre
+      ? `<span class="evidence-mitre">${escapeHtml(f.mitre)}</span>`
+      : "";
+    const evidenceLines = (f.evidence || []).length
+      ? `<ul class="evidence-detail">${f.evidence
+          .map(e => `<li><code>${escapeHtml(e)}</code></li>`)
+          .join("")}</ul>`
+      : "";
+
+    card.innerHTML = `
+      <div class="evidence-top">
+        <span class="evidence-sev">${escapeHtml(f.severity)}</span>
+        <span class="evidence-title">${escapeHtml(f.label)}</span>
+        ${mitreTag}
+      </div>
+      ${f.explain ? `<p class="evidence-explain">${escapeHtml(f.explain)}</p>` : ""}
+      ${evidenceLines}
+    `;
+    box.appendChild(card);
   }
+
+  const structure = staticAnalysis.structure;
+  if (structure?.type === "pe") {
+    const note = document.createElement("div");
+    note.className = "evidence-structure";
+    const dlls = (structure.importedDlls || []).slice(0, 6).join(", ") || "none";
+    note.textContent =
+      `Windows executable · ${structure.machine} · ${structure.subsystem} · ` +
+      `${structure.signed ? "signed" : "unsigned"} · ` +
+      `${structure.importedFunctionCount} imports from ${dlls}`;
+    box.appendChild(note);
+  } else if (structure?.type === "zip") {
+    const note = document.createElement("div");
+    note.className = "evidence-structure";
+    note.textContent = `Archive · ${structure.entryCount} entries · ${structure.entries.slice(0, 4).join(", ")}`;
+    box.appendChild(note);
+  }
+
+  els.factorList.appendChild(box);
 }
 
 async function triggerActiveTabScan() {
