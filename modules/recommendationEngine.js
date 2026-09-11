@@ -7,7 +7,30 @@ import { RISK_THRESHOLDS } from "./config.js";
 
 export function getRecommendation(trustResult, context = {}) {
   const { trustScore, safeBrowsingOverride } = trustResult;
-  const { looksLikeTyposquat, integrityStatus, chromeDanger, staticAnalysisCritical, staticAnalysisFindings } = context;
+  const {
+    looksLikeTyposquat, integrityStatus, chromeDanger,
+    staticAnalysisCritical, staticAnalysisFindings,
+    malwareBazaarFlagged, malwareBazaarSignature,
+    urlhausFlagged, hasExploits, exploits
+  } = context;
+
+  if (malwareBazaarFlagged) {
+    return {
+      riskLevel: "dangerous",
+      emoji: "🔴",
+      headline: "Malware Detected (MalwareBazaar)",
+      detail: `MalwareBazaar (abuse.ch) matched this file to known malware${malwareBazaarSignature ? ` (${malwareBazaarSignature})` : ""}.`
+    };
+  }
+
+  if (urlhausFlagged) {
+    return {
+      riskLevel: "dangerous",
+      emoji: "🔴",
+      headline: "Malware Host Flagged (URLhaus)",
+      detail: "URLhaus (abuse.ch) identified this download source as an active malware distribution point."
+    };
+  }
 
   if (safeBrowsingOverride) {
     return {
@@ -15,6 +38,16 @@ export function getRecommendation(trustResult, context = {}) {
       emoji: "🔴",
       headline: "Delete Immediately",
       detail: "Google Safe Browsing or browser security flagged this download as a threat."
+    };
+  }
+
+  if (hasExploits && exploits?.length > 0) {
+    const firstExploit = exploits[0];
+    return {
+      riskLevel: "dangerous",
+      emoji: "🔴",
+      headline: "Active Exploit Detected",
+      detail: `Critical vulnerability ${firstExploit.id} has public exploits or active in-the-wild weaponization (${firstExploit.exploitSource || "Known Exploit"}).`
     };
   }
 

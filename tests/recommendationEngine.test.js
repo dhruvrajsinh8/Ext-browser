@@ -57,3 +57,39 @@ test("getRecommendation forces dangerous on Chrome danger flag", () => {
 
   assert.equal(result.riskLevel, "dangerous");
 });
+
+test("getRecommendation forces dangerous on MalwareBazaar flagged sample", () => {
+  const result = getRecommendation(
+    { trustScore: 85, safeBrowsingOverride: false },
+    { malwareBazaarFlagged: true, malwareBazaarSignature: "AgentTesla" }
+  );
+
+  assert.equal(result.riskLevel, "dangerous");
+  assert.equal(result.headline, "Malware Detected (MalwareBazaar)");
+  assert.match(result.detail, /AgentTesla/);
+});
+
+test("getRecommendation forces dangerous on URLhaus flagged distribution host", () => {
+  const result = getRecommendation(
+    { trustScore: 85, safeBrowsingOverride: false },
+    { urlhausFlagged: true }
+  );
+
+  assert.equal(result.riskLevel, "dangerous");
+  assert.equal(result.headline, "Malware Host Flagged (URLhaus)");
+});
+
+test("getRecommendation flags active weaponized exploit", () => {
+  const result = getRecommendation(
+    { trustScore: 85, safeBrowsingOverride: false },
+    {
+      hasExploits: true,
+      exploits: [{ id: "CVE-2023-38831", exploitSource: "CISA KEV" }]
+    }
+  );
+
+  assert.equal(result.riskLevel, "dangerous");
+  assert.equal(result.headline, "Active Exploit Detected");
+  assert.match(result.detail, /CVE-2023-38831/);
+});
+

@@ -21,7 +21,11 @@
 
 
     <section class="card">
-      <h2>Threat Intelligence API Keys</h2>
+      <h2>Threat Intelligence & AI API Keys</h2>
+
+      <label for="geminiKey">Google Gemini API key</label>
+      <input id="geminiKey" type="password" placeholder="Paste your Google Gemini API key" autocomplete="off" />
+      <p class="hint">Powers fast Gemini 1.5 Flash security insights. If omitted, SecureDownload AI falls back to on-device Gemini Nano or the offline expert heuristic AI.</p>
 
       <label for="vtKey">VirusTotal API key</label>
       <input id="vtKey" type="password" placeholder="Paste your VirusTotal API key" autocomplete="off" />
@@ -29,7 +33,15 @@
 
       <label for="sbKey">Google Safe Browsing API key</label>
       <input id="sbKey" type="password" placeholder="Paste your Safe Browsing API key" autocomplete="off" />
-      <p class="hint">From Google Cloud Console (Safe Browsing API). Without a key, this check is skipped.</p>
+      <p class="hint">From Google Cloud Console (Safe Browsing API). Identifies phishing and deceptive sites.</p>
+
+      <label for="mbKey">MalwareBazaar Auth-Key (optional)</label>
+      <input id="mbKey" type="password" placeholder="Optional — abuse.ch MalwareBazaar Auth-Key" autocomplete="off" />
+      <p class="hint">MalwareBazaar hash checks work without a key; add an Auth-Key for higher API rate limits.</p>
+
+      <label for="uhKey">URLhaus Auth-Key (optional)</label>
+      <input id="uhKey" type="password" placeholder="Optional — abuse.ch URLhaus Auth-Key" autocomplete="off" />
+      <p class="hint">URLhaus checks known malware distribution URLs. Free tier works without a key.</p>
 
       <label for="nvdKey">NVD API key (optional)</label>
       <input id="nvdKey" type="password" placeholder="Optional — raises NVD rate limits" autocomplete="off" />
@@ -53,7 +65,7 @@
     </section>
 
     <section class="card">
-      <h2>Behavior</h2>
+      <h2>Behavior & On-Page Defense</h2>
       <label class="row">
         <input type="checkbox" id="autoAnalyze" />
         <span>Automatically analyze new downloads</span>
@@ -62,6 +74,21 @@
         <input type="checkbox" id="blockDangerous" />
         <span>Auto-delete files scored "Dangerous" without asking</span>
       </label>
+      <label class="row">
+        <input type="checkbox" id="enableWebsiteScanOverlay" />
+        <span>Show animated Security Radar HUD on visited websites</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" id="enableDownloadOverlay" />
+        <span>Show on-page Download Guard floating notifications</span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Dangerous Website Bypasses</h2>
+      <p class="hint">Domains you have temporarily allowed through the dangerous website warning interstitial.</p>
+      <div id="bypassedDomainsList" style="font-size: 13px; color: #9ca3af; margin-bottom: 8px;">No active bypasses.</div>
+      <button id="clearBypassesBtn" class="save-btn" type="button" style="width: auto; background: #374151;">Clear All Bypasses</button>
     </section>
 
     <section class="card">

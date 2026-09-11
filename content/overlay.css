@@ -1,0 +1,453 @@
+/* content/overlay.css - SecureDownload AI On-Page HUD & Notification Styling */
+
+/* Base container resets */
+#sd-ai-hud-root,
+#sd-ai-download-toast-root,
+#sd-ai-overlay-banner {
+  all: initial;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 13px !important;
+  color: #e5e7eb !important;
+  line-height: 1.4 !important;
+  z-index: 2147483647 !important;
+  position: fixed !important;
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased !important;
+  user-select: none !important;
+}
+
+#sd-ai-hud-root *,
+#sd-ai-download-toast-root *,
+#sd-ai-overlay-banner * {
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+}
+
+/* ==================== 1. ClickFix / Alert Banner ==================== */
+#sd-ai-overlay-banner {
+  top: 16px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: min(92vw, 560px) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-left: 5px solid #ef4444 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(239, 68, 68, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  animation: sdAiSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.sd-ai-tag {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 3px 6px !important;
+  border-radius: 4px !important;
+  color: #fff !important;
+  letter-spacing: 0.05em !important;
+}
+
+.sd-ai-body {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.sd-ai-body strong {
+  color: #fff !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.sd-ai-body span {
+  color: #94a3b8 !important;
+  font-size: 12px !important;
+}
+
+.sd-ai-close {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  font-size: 18px !important;
+  cursor: pointer !important;
+  padding: 4px !important;
+  line-height: 1 !important;
+  border-radius: 4px !important;
+}
+
+.sd-ai-close:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ==================== 2. Scanning HUD Overlay ==================== */
+#sd-ai-hud-root {
+  top: 20px !important;
+  right: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+
+/* Minimized Floating Shield Badge */
+.sd-ai-shield-badge {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.5) !important;
+  border-radius: 24px !important;
+  padding: 6px 12px !important;
+  cursor: pointer !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(16, 185, 129, 0.25) !important;
+  transition: all 0.25s ease !important;
+  animation: sdAiBadgeFade 0.3s ease !important;
+}
+
+.sd-ai-shield-badge:hover {
+  transform: translateY(-2px) scale(1.03) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.4) !important;
+}
+
+.sd-ai-badge-icon {
+  width: 16px !important;
+  height: 16px !important;
+  color: #10b981 !important;
+}
+
+.sd-ai-badge-score {
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  color: #fff !important;
+}
+
+.sd-ai-badge-grade {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #10b981 !important;
+  text-transform: uppercase !important;
+  background: rgba(16, 185, 129, 0.15) !important;
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+}
+
+/* Expanded HUD Card */
+.sd-ai-hud-card {
+  width: 320px !important;
+  background: rgba(15, 23, 42, 0.92) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(59, 130, 246, 0.15) !important;
+  padding: 16px !important;
+  animation: sdAiSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.sd-ai-hud-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 12px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.sd-ai-hud-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+
+.sd-ai-radar-icon {
+  width: 16px !important;
+  height: 16px !important;
+  color: #38bdf8 !important;
+  animation: sdAiSpin 4s linear infinite !important;
+}
+
+@keyframes sdAiSpin {
+  100% { transform: rotate(360deg); }
+}
+
+.sd-ai-hud-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.sd-ai-hud-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  padding: 2px !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.sd-ai-hud-btn:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sd-ai-steps-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+.sd-ai-step-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 11.5px !important;
+  color: #94a3b8 !important;
+  transition: all 0.2s ease !important;
+}
+
+.sd-ai-step-item.active {
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
+}
+
+.sd-ai-step-item.done {
+  color: #cbd5e1 !important;
+}
+
+.sd-ai-step-indicator {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 9px !important;
+}
+
+.sd-ai-step-item.pending .sd-ai-step-indicator {
+  border: 1.5px solid #475569 !important;
+}
+
+.sd-ai-step-item.active .sd-ai-step-indicator {
+  border: 1.5px solid #38bdf8 !important;
+  border-top-color: transparent !important;
+  animation: sdAiSpin 1s linear infinite !important;
+}
+
+.sd-ai-step-item.done .sd-ai-step-indicator {
+  background: #10b981 !important;
+  color: #fff !important;
+}
+
+.sd-ai-hud-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-radius: 8px !important;
+  padding: 8px 10px !important;
+}
+
+.sd-ai-hud-grade-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.sd-ai-hud-status-text {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+}
+
+/* ==================== 3. Download Guard Toast ==================== */
+#sd-ai-download-toast-root {
+  bottom: 24px !important;
+  right: 24px !important;
+  width: 360px !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(59, 130, 246, 0.2) !important;
+  padding: 16px !important;
+  animation: sdAiSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.sd-ai-toast-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 10px !important;
+}
+
+.sd-ai-toast-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  color: #38bdf8 !important;
+}
+
+.sd-ai-toast-file {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  padding: 8px 10px !important;
+  margin-bottom: 12px !important;
+}
+
+.sd-ai-file-icon {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+}
+
+.sd-ai-file-meta {
+  flex: 1 !important;
+  overflow: hidden !important;
+}
+
+.sd-ai-filename {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.sd-ai-file-status {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+}
+
+.sd-ai-toast-verdict {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 10px !important;
+  border-radius: 8px !important;
+  margin-bottom: 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.sd-ai-toast-verdict.safe {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #10b981 !important;
+}
+
+.sd-ai-toast-verdict.warning {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  color: #f59e0b !important;
+}
+
+.sd-ai-toast-verdict.dangerous {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  color: #ef4444 !important;
+}
+
+.sd-ai-exploit-pill {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  color: #fca5a5 !important;
+  font-size: 11px !important;
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.sd-ai-toast-actions {
+  display: flex !important;
+  gap: 8px !important;
+}
+
+.sd-ai-action-btn {
+  flex: 1 !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+.sd-ai-btn-resume {
+  background: #10b981 !important;
+  color: #fff !important;
+}
+
+.sd-ai-btn-resume:hover {
+  background: #059669 !important;
+}
+
+.sd-ai-btn-discard {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+
+.sd-ai-btn-discard:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+  color: #ff7878 !important;
+}
+
+/* Animations */
+@keyframes sdAiSlideDown {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes sdAiSlideIn {
+  from { opacity: 0; transform: translateX(20px) scale(0.96); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes sdAiSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes sdAiBadgeFade {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}

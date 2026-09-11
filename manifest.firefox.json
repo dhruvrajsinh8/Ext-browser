@@ -1,34 +1,70 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
-
   "browser_specific_settings": {
     "gecko": {
       "id": "securedownload-ai@techmangri2026",
-      "strict_min_version": "128.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "websiteContent",
+          "websiteActivity"
+        ],
+        "optional": [
+          "personalCommunications"
+        ]
+      }
     }
   },
-
   "permissions": [
     "downloads",
     "storage",
     "notifications",
     "alarms",
-    "activeTab"
+    "activeTab",
+    "tabs",
+    "identity"
   ],
   "host_permissions": [
     "https://*/*",
     "http://*/*"
   ],
-
   "background": {
-    "scripts": ["background.js"],
+    "scripts": [
+      "background.js"
+    ],
     "type": "module"
   },
-
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content/overlay.js"
+      ],
+      "css": [
+        "content/overlay.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*",
+        "warning/*",
+        "content/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "SecureDownload AI",
@@ -45,12 +81,10 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true
   },
-
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }

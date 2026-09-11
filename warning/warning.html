@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security Alert — Unsafe Website Blocked</title>
+  <link rel="stylesheet" href="warning.css" />
+</head>
+<body>
+  <div class="warning-container">
+    <div class="glow-backdrop"></div>
+    
+    <main class="card">
+      <div class="shield-icon-wrap">
+        <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+
+      <div class="brand-sub">SecureDownload AI · Threat Defense</div>
+      <h1 class="warning-title">Deceptive or Dangerous Website Intercepted</h1>
+      
+      <p class="warning-desc">
+        SecureDownload AI has blocked access to <strong id="dangerDomain" class="danger-domain">example.com</strong>.
+        Navigation was halted because this site matched active threat intelligence or impersonation heuristics.
+      </p>
+
+      <div class="threat-box">
+        <div class="threat-header">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          <span>Detected Threat Factors</span>
+        </div>
+        <ul id="threatList" class="threat-list">
+          <!-- Populated by warning.js -->
+        </ul>
+      </div>
+
+      <div class="url-strip">
+        <span class="url-label">Requested URL:</span>
+        <span id="dangerUrl" class="url-text">https://...</span>
+      </div>
+
+      <div class="action-buttons">
+        <button id="safetyBtn" class="btn btn-safe" type="button">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+          <span>Take Me Back to Safety (Recommended)</span>
+        </button>
+
+        <button id="detailsBtn" class="btn btn-secondary" type="button">
+          <span>Technical Details</span>
+          <svg id="chevronIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+      </div>
+
+      <div id="technicalDetails" class="technical-details hidden">
+        <div class="detail-inner">
+          <p>
+            Visiting malicious websites can expose your device to drive-by malware downloads, credential harvesting,
+            and SSL stripping attacks. This warning was generated automatically through multi-engine inspection
+            including Google Safe Browsing, abuse.ch URLhaus, domain typosquatting analysis, and HTTP header verification.
+          </p>
+          <div class="bypass-area">
+            <p class="bypass-warning">
+              ⚠ If you understand the risks and are confident this site is safe, you may bypass this warning for your current session.
+            </p>
+            <button id="proceedBtn" class="btn btn-danger-ghost" type="button">
+              Proceed Anyway (Unsafe)
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="warning-footer">
+      <span>Protected in real-time by <strong>SecureDownload AI</strong> · Client-side protection</span>
+    </footer>
+  </div>
+
+  <script src="warning.js" type="module"></script>
+</body>
+</html>

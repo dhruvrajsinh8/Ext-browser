@@ -114,10 +114,22 @@ function scoreFromStats(stats, source) {
   const total = malicious + suspicious + harmless + (stats.undetected || 0);
 
   let vtScore;
-  if (total === 0) vtScore = 55;
-  else if (malicious > 0) vtScore = Math.max(0, 40 - malicious * 5);
-  else if (suspicious > 0) vtScore = Math.max(40, 70 - suspicious * 5);
-  else vtScore = 95;
+  if (total === 0) {
+    vtScore = 60; // neutral / unseen
+  } else if (malicious >= 3) {
+    vtScore = Math.max(0, 30 - malicious * 5);
+  } else if (malicious === 2) {
+    vtScore = 35;
+  } else if (malicious === 1 && suspicious === 0) {
+    // Single engine detection on VT is very often a false positive (e.g. generic heuristic flags)
+    vtScore = 65;
+  } else if (malicious === 1 && suspicious > 0) {
+    vtScore = 45;
+  } else if (suspicious > 0) {
+    vtScore = Math.max(45, 75 - suspicious * 8);
+  } else {
+    vtScore = 98; // Verified clean by multiple AV engines
+  }
 
   return { vtScore, status: `analyzed_${source}`, malicious, suspicious, harmless, total };
 }
@@ -156,3 +168,117 @@ export async function checkSafeBrowsing(url, apiKey) {
     return { safeBrowsingScore: 50, status: "error", error: String(err), flagged: false };
   }
 }
+
+/**
+ * Queries MalwareBazaar (abuse.ch) for a known malware sample matching the SHA256 hash.
+ * Free public API; optional Auth-Key for higher tiers.
+ *
+ * @param {string} sha256 - lowercase SHA256 hash
+ * @param {string} [apiKey] - optional MalwareBazaar Auth-Key
+ */
+export async function checkMalwareBazaar(sha256, apiKey = "") {
+  if (!sha256) {
+    return { mbScore: 60, status: "no_hash", flagged: false };
+  }
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append("query", "get_info");
+    formData.append("hash", sha256);
+
+    const headers = { "Content-Type": "application/x-www-form-urlencoded" };
+    if (apiKey) headers["Auth-Key"] = apiKey;
+
+    const res = await fetch(ENDPOINTS.malwareBazaar, {
+      method: "POST",
+      headers,
+      body: formData.toString()
+    });
+
+    if (!res.ok) throw new Error(`MalwareBazaar query failed: ${res.status}`);
+    const data = await res.json();
+
+    if (data.query_status === "ok" && Array.isArray(data.data) && data.data.length > 0) {
+      const sample = data.data[0];
+      return {
+        mbScore: 0,
+        status: "malware_found",
+        flagged: true,
+        signature: sample.signature || "Malware Sample",
+        fileType: sample.file_type || "binary",
+        deliveryMethod: sample.delivery_method || null,
+        tags: sample.tags || []
+      };
+    }
+
+    if (data.query_status === "hash_not_found") {
+      return {
+        mbScore: 85,
+        status: "clean_or_unseen",
+        flagged: false,
+        signature: null,
+        tags: []
+      };
+    }
+
+    return { mbScore: 60, status: data.query_status || "unseen", flagged: false };
+  } catch (err) {
+    return { mbScore: 60, status: "error", error: String(err), flagged: false };
+  }
+}
+
+/**
+ * Queries URLhaus (abuse.ch) to determine if a URL or its host is a recognized
+ * malware distribution endpoint. Free public intelligence.
+ *
+ * @param {string} url
+ * @param {string} [apiKey]
+ */
+export async function checkUrlhaus(url, apiKey = "") {
+  if (!url || !url.startsWith("http")) {
+    return { urlhausScore: 60, status: "invalid_url", flagged: false };
+  }
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append("url", url);
+
+    const headers = { "Content-Type": "application/x-www-form-urlencoded" };
+    if (apiKey) headers["Auth-Key"] = apiKey;
+
+    const res = await fetch(ENDPOINTS.urlhaus, {
+      method: "POST",
+      headers,
+      body: formData.toString()
+    });
+
+    if (!res.ok) throw new Error(`URLhaus query failed: ${res.status}`);
+    const data = await res.json();
+
+    if (data.query_status === "ok") {
+      const isOnline = data.url_status === "online";
+      return {
+        urlhausScore: 0,
+        status: "malicious",
+        flagged: true,
+        threat: data.threat || "malware_download",
+        urlStatus: data.url_status || "unknown",
+        tags: data.tags || []
+      };
+    }
+
+    if (data.query_status === "no_results") {
+      return {
+        urlhausScore: 95,
+        status: "clean",
+        flagged: false,
+        threat: null
+      };
+    }
+
+    return { urlhausScore: 60, status: data.query_status || "unseen", flagged: false };
+  } catch (err) {
+    return { urlhausScore: 60, status: "error", error: String(err), flagged: false };
+  }
+}
+

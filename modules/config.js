@@ -232,6 +232,11 @@ export const ENDPOINTS = {
   virusTotalFileUpload: "https://www.virustotal.com/api/v3/files",
   virusTotalAnalysis: "https://www.virustotal.com/api/v3/analyses",
   safeBrowsing: "https://safebrowsing.googleapis.com/v4/threatMatches:find",
+  malwareBazaar: "https://mb-api.abuse.ch/api/v1/",
+  urlhaus: "https://urlhaus-api.abuse.ch/v1/url/",
+  urlhausHost: "https://urlhaus-api.abuse.ch/v1/host/",
+  cisaKev: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+  geminiGenerate: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
   nvdCves: "https://services.nvd.nist.gov/rest/json/cves/2.0",
   gmailMessages: "https://gmail.googleapis.com/gmail/v1/users/me/messages",
   gmailProfile: "https://gmail.googleapis.com/gmail/v1/users/me/profile"
@@ -295,7 +300,10 @@ export const PHISHING_URGENCY_PATTERNS = [
 export const CACHE_TTL_MS = {
   virusTotal: 1000 * 60 * 60 * 6,   // 6 hours
   safeBrowsing: 1000 * 60 * 60 * 6, // 6 hours
-  nvd: 1000 * 60 * 60 * 24          // 24 hours
+  malwareBazaar: 1000 * 60 * 60 * 6,// 6 hours
+  urlhaus: 1000 * 60 * 60 * 6,      // 6 hours
+  nvd: 1000 * 60 * 60 * 24,         // 24 hours
+  websiteAudit: 1000 * 60 * 15      // 15 mins
 };
 
 export const MAX_HISTORY_ITEMS = 200;

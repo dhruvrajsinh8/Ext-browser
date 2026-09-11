@@ -70,6 +70,20 @@ const FACTOR_META = [
     from: (r) => r.details.source.sourceReputationScore,
     reason: (r) => r.details.source.isKnownOfficial ? "High reputation distribution CDN" : "Standard domain reputation",
     applicable: () => true
+  },
+  {
+    key: "malwareBazaar",
+    label: "MalwareBazaar",
+    from: (r) => r.details.malwareBazaar?.mbScore ?? 60,
+    reason: (r) => r.details.malwareBazaar?.flagged ? `Known malware: ${r.details.malwareBazaar.signature}` : (r.details.malwareBazaar?.status === "clean_or_unseen" ? "Clean / not in malware registry" : "Hash lookup completed"),
+    applicable: (r) => Boolean(r.details.malwareBazaar && r.details.malwareBazaar.status !== "no_hash")
+  },
+  {
+    key: "urlhaus",
+    label: "URLhaus Intel",
+    from: (r) => r.details.urlhaus?.urlhausScore ?? 60,
+    reason: (r) => r.details.urlhaus?.flagged ? "Active malware distribution host" : (r.details.urlhaus?.status === "clean" ? "Clean / zero abuse flags" : "Reputation lookup completed"),
+    applicable: (r) => Boolean(r.details.urlhaus && r.details.urlhaus.status !== "invalid_url")
   }
 ];
 
@@ -196,41 +210,17 @@ async function onAiExplainClick() {
   if (!currentRecord) return;
   els.aiExplainBtn.disabled = true;
   els.aiNarrativeBox.classList.add("hidden");
-  els.aiExplainBtnText.textContent = "Checking on-device model…";
-
-  const availability = await getAiAvailability();
-  if (availability === "unsupported") {
-    els.aiExplainBtnText.textContent = "AI unavailable — update Chrome to use this";
-    els.aiExplainBtn.disabled = false;
-    return;
-  }
-  if (availability === "unavailable") {
-    els.aiExplainBtnText.textContent = "On-device AI not available on this device";
-    els.aiExplainBtn.disabled = false;
-    return;
-  }
-
-  els.aiExplainBtnText.textContent = availability === "available"
-    ? "Generating explanation…"
-    : "Downloading on-device model…";
+  els.aiExplainBtnText.textContent = "Analyzing with AI…";
 
   const result = await explainDownloadScan(currentRecord, (pct) => {
-    if (availability !== "available") {
-      els.aiExplainBtnText.textContent = `Downloading on-device model… ${pct}%`;
-    }
+    els.aiExplainBtnText.textContent = `Downloading model… ${pct}%`;
   });
 
   els.aiExplainBtn.disabled = false;
-  els.aiExplainBtnText.textContent = "Explain with On-Device AI";
+  els.aiExplainBtnText.textContent = "Explain with AI Insights";
 
   if (!result.ok) {
-    const messages = {
-      unsupported: "This version of Chrome doesn't support on-device AI.",
-      unavailable: "On-device AI isn't available on this device.",
-      timed_out: "The on-device model took too long to respond. Try again.",
-      error: "Couldn't generate an explanation right now."
-    };
-    els.aiNarrativeText.textContent = messages[result.reason] || messages.error;
+    els.aiNarrativeText.textContent = "Couldn't generate an explanation right now.";
     els.aiReasonsList.innerHTML = "";
     els.aiConcernText.classList.add("hidden");
     els.aiNarrativeBox.classList.remove("hidden");
@@ -238,9 +228,9 @@ async function onAiExplainClick() {
   }
 
   els.aiNarrativeText.textContent = result.narrative;
-  els.aiReasonsList.innerHTML = result.topReasons.map((r) => `<li>${escapeHtml(r)}</li>`).join("");
+  els.aiReasonsList.innerHTML = (result.topReasons || []).map((r) => `<li>${escapeHtml(r)}</li>`).join("");
   if (result.additionalConcern) {
-    els.aiConcernText.textContent = `⚠ Worth a second look: ${result.additionalConcern}`;
+    els.aiConcernText.textContent = `⚠ ${result.additionalConcern}`;
     els.aiConcernText.classList.remove("hidden");
   } else {
     els.aiConcernText.classList.add("hidden");
@@ -528,6 +518,36 @@ function renderFactors(record) {
   }
 
   renderStaticFindings(record.details?.staticAnalysis);
+  renderExploitFindings(record.details?.vulnerability);
+}
+
+function renderExploitFindings(vulnerability) {
+  if (!vulnerability?.hasExploits || !vulnerability.exploits?.length) return;
+
+  const box = document.createElement("div");
+  box.className = "evidence-block";
+
+  const heading = document.createElement("div");
+  heading.className = "evidence-heading";
+  heading.style.color = "#ef4444";
+  heading.textContent = `🚨 Active Weaponized Exploits Detected (${vulnerability.exploits.length})`;
+  box.appendChild(heading);
+
+  for (const exp of vulnerability.exploits) {
+    const card = document.createElement("div");
+    card.className = "evidence-card evidence-critical";
+    card.innerHTML = `
+      <div class="evidence-top">
+        <span class="evidence-sev">EXPLOIT</span>
+        <span class="evidence-title">${escapeHtml(exp.id)} (CVSS ${exp.baseScore ?? "High"})</span>
+      </div>
+      <p class="evidence-explain"><strong>Source:</strong> ${escapeHtml(exp.exploitSource || "Known Exploit")}</p>
+      <p class="evidence-explain">${escapeHtml(exp.description || "Public proof-of-concept or active weaponization detected.")}</p>
+    `;
+    box.appendChild(card);
+  }
+
+  els.factorList.appendChild(box);
 }
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };

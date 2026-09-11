@@ -5,13 +5,13 @@ import { parseDownloadItem } from "./modules/downloadParser.js";
 import { verifySource, verifyHttps, analyzeWebsiteVulnerabilities } from "./modules/sourceVerification.js";
 import { verifyPublisher } from "./modules/publisherVerification.js";
 import { checkFileIntegrity } from "./modules/fileIntegrity.js";
-import { checkVirusTotal, checkSafeBrowsing, uploadFileToVirusTotal } from "./modules/threatIntelligence.js";
+import { checkVirusTotal, checkSafeBrowsing, uploadFileToVirusTotal, checkMalwareBazaar, checkUrlhaus } from "./modules/threatIntelligence.js";
 import { checkVulnerabilities } from "./modules/vulnerabilityIntelligence.js";
 import { runStaticAnalysis } from "./modules/staticAnalysis.js";
 import { calculateTrustScore } from "./modules/trustEngine.js";
 import { getRecommendation } from "./modules/recommendationEngine.js";
 import {
-  saveScanRecord, getSettings, getCached, setCached, getPublisherList, pruneExpiredCache,
+  saveScanRecord, getSettings, saveSettings, getCached, setCached, getPublisherList, pruneExpiredCache,
   saveEmailScanRecord, getScannedEmailIds, markEmailIdsScanned
 } from "./modules/storageManager.js";
 import { setInFlightScan, getInFlightScan, removeInFlightScan, getAllInFlightScans } from "./modules/stateStore.js";
@@ -61,6 +61,19 @@ chrome.downloads.onCreated.addListener(async (item) => {
     console.warn("[SecureDownload AI] could not pause (may already be complete):", err);
   }
 
+  // Notify on-page Download Guard toast
+  if (settings.enableDownloadOverlay !== false) {
+    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      if (tab?.id) {
+        chrome.tabs.sendMessage(tab.id, {
+          type: "SD_DOWNLOAD_STARTED",
+          downloadId: item.id,
+          filename: parsed.filename
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }
+
   runAnalysisPipeline(parsed, settings)
     .then(() => console.log("[SecureDownload AI] pipeline complete for", parsed.filename))
     .catch(async (err) => {
@@ -90,14 +103,16 @@ async function runAnalysisPipeline(parsed, settings) {
   const vtKeyMaterial = integrityResult.sha256 || parsed.url;
   const publisherList = await getPublisherList();
 
-  const [sourceResult, httpsResult, publisherResult, vtResult, sbResult, vulnResult] =
+  const [sourceResult, httpsResult, publisherResult, vtResult, sbResult, vulnResult, mbResult, urlhausResult] =
     await Promise.all([
       Promise.resolve(verifySource(parsed.domain, settings.extraTrustedDomains)),
       Promise.resolve(verifyHttps(parsed.url)),
       Promise.resolve(verifyPublisher(parsed, settings.extraTrustedDomains, publisherList)),
       cachedThreatCheck("vt", vtKeyMaterial, () => checkVirusTotal({ url: parsed.url, sha256: integrityResult.sha256 }, settings.virusTotalApiKey)),
       cachedThreatCheck("sb", parsed.url, () => checkSafeBrowsing(parsed.url, settings.safeBrowsingApiKey)),
-      cachedThreatCheck("nvd", parsed.filename, () => checkVulnerabilities(parsed.filename, settings.nvdApiKey))
+      cachedThreatCheck("nvd", parsed.filename, () => checkVulnerabilities(parsed.filename, settings.nvdApiKey)),
+      cachedThreatCheck("mb", integrityResult.sha256 || "none", () => checkMalwareBazaar(integrityResult.sha256, settings.malwareBazaarApiKey)),
+      cachedThreatCheck("uh", parsed.url, () => checkUrlhaus(parsed.url, settings.urlhausApiKey))
     ]);
 
   const staticResult = runStaticAnalysis(integrityResult.buffer, parsed);
@@ -128,6 +143,9 @@ async function runAnalysisPipeline(parsed, settings) {
     integrityApplicable: ["matches_known_good", "hash_mismatch_possible_tampering"].includes(integrityResult.status),
     sourceReputationScore: sourceResult.sourceReputationScore,
     safeBrowsingFlagged: sbResult.flagged,
+    malwareBazaarFlagged: mbResult.flagged,
+    urlhausFlagged: urlhausResult.flagged,
+    hasExploits: vulnResult.hasExploits,
     chromeDanger: parsed.danger
   });
 
@@ -136,7 +154,12 @@ async function runAnalysisPipeline(parsed, settings) {
     integrityStatus: integrityResult.status,
     chromeDanger: parsed.danger,
     staticAnalysisCritical,
-    staticAnalysisFindings: staticResult.findings
+    staticAnalysisFindings: staticResult.findings,
+    malwareBazaarFlagged: mbResult.flagged,
+    malwareBazaarSignature: mbResult.signature,
+    urlhausFlagged: urlhausResult.flagged,
+    hasExploits: vulnResult.hasExploits,
+    exploits: vulnResult.exploits
   });
 
   // Strip raw ArrayBuffer before persistence
@@ -164,6 +187,8 @@ async function runAnalysisPipeline(parsed, settings) {
       staticAnalysis: staticResult,
       virusTotal: finalVtResult,
       safeBrowsing: sbResult,
+      malwareBazaar: mbResult,
+      urlhaus: urlhausResult,
       vulnerability: vulnResult,
       websiteSecurity
     },
@@ -198,7 +223,19 @@ async function runAnalysisPipeline(parsed, settings) {
     await removeInFlightScan(parsed.downloadId);
   }
 
+  // Notify active tab and popup of completed analysis
   chrome.runtime.sendMessage({ type: "SD_ANALYSIS_COMPLETE", record, autoResumed }).catch(() => {});
+  chrome.tabs.query({}).then((tabs) => {
+    for (const t of tabs) {
+      if (t.id) {
+        chrome.tabs.sendMessage(t.id, {
+          type: "SD_DOWNLOAD_ANALYSIS_COMPLETE",
+          record,
+          autoResumed
+        }).catch(() => {});
+      }
+    }
+  }).catch(() => {});
 }
 
 async function handleBlockedDomain(parsed, blockCheck) {
@@ -393,11 +430,106 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })();
     return true;
   }
+  if (message.type === "SD_BYPASS_DOMAIN") {
+    (async () => {
+      const settings = await getSettings();
+      const current = new Set(settings.bypassedWarningDomains || []);
+      current.add(message.domain);
+      await saveSettings({ bypassedWarningDomains: Array.from(current) });
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+  if (message.type === "SD_CLEAR_BYPASS_DOMAINS") {
+    (async () => {
+      await saveSettings({ bypassedWarningDomains: [] });
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+  if (message.type === "SD_PAGE_LOADED") {
+    (async () => {
+      const settings = await getSettings();
+      if (settings.enableWebsiteScanOverlay !== false && _sender?.tab?.id) {
+        const headers = await fetchSiteHeaders(message.url);
+        const audit = analyzeWebsiteVulnerabilities(message.url, headers, settings.extraTrustedDomains);
+        chrome.tabs.sendMessage(_sender.tab.id, {
+          type: "SD_TRIGGER_PAGE_SCAN_HUD",
+          audit
+        }).catch(() => {});
+      }
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
   if (message.type === "SD_EMAIL_SCAN_NOW") {
     scanEmailInbox({ manual: true }).then(sendResponse);
     return true;
   }
   return false;
+});
+
+async function checkDangerousWebsite(url, domain, settings) {
+  if (!url || !domain || !url.startsWith("http")) return null;
+  if (url.includes(chrome.runtime.id)) return null;
+
+  const bypassed = new Set(settings.bypassedWarningDomains || []);
+  if (bypassed.has(domain)) return null;
+
+  const reasons = [];
+
+  // 1. Blocklist check
+  const blockCheck = checkDomainBlocklist(domain, settings.blockedDomains || []);
+  if (blockCheck.blocked) {
+    reasons.push(`Domain is on your personal blocklist (${blockCheck.matchedEntry})`);
+  }
+
+  // 2. Typosquatting / brand impersonation
+  const sourceResult = verifySource(domain, settings.extraTrustedDomains);
+  if (sourceResult.looksLikeTyposquat) {
+    reasons.push(`Suspected brand impersonation / typosquatting mimicking ${sourceResult.suspiciouslyCloseTo}`);
+  }
+
+  // 3. Safe Browsing
+  if (settings.safeBrowsingApiKey) {
+    try {
+      const sbResult = await cachedThreatCheck("sb", url, () => checkSafeBrowsing(url, settings.safeBrowsingApiKey));
+      if (sbResult?.flagged) {
+        reasons.push(`Google Safe Browsing flagged as ${sbResult.threatTypes?.join(", ") || "threat"}`);
+      }
+    } catch (_e) {}
+  }
+
+  // 4. URLhaus
+  if (settings.urlhausApiKey) {
+    try {
+      const uhResult = await cachedThreatCheck("uh", url, () => checkUrlhaus(url, settings.urlhausApiKey));
+      if (uhResult?.flagged) {
+        reasons.push("abuse.ch URLhaus identified active malware hosting");
+      }
+    } catch (_e) {}
+  }
+
+  return reasons.length > 0 ? reasons : null;
+}
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  const url = changeInfo.url || tab?.url;
+  if (!url || !url.startsWith("http")) return;
+
+  if (changeInfo.status === "loading" || changeInfo.url) {
+    try {
+      const domain = new URL(url).hostname;
+      const settings = await getSettings();
+      const reasons = await checkDangerousWebsite(url, domain, settings);
+      if (reasons) {
+        const warningUrl = chrome.runtime.getURL(
+          `warning/warning.html?url=${encodeURIComponent(url)}&domain=${encodeURIComponent(domain)}&reasons=${encodeURIComponent(reasons.join(","))}`
+        );
+        chrome.tabs.update(tabId, { url: warningUrl }).catch(() => {});
+      }
+    } catch (_e) {}
+  }
 });
 
 chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {

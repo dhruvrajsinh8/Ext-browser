@@ -73,16 +73,25 @@ export function calculateTrustScore(scores) {
     total += contribution;
   }
 
-  // Safe Browsing or Chrome built-in threat detection acts as a hard override:
+  // Safe Browsing, MalwareBazaar, URLhaus, or Chrome built-in threat detection acts as a hard override:
   // confirmed flags are unambiguous ground truth.
   const chromeDangerFlagged = Boolean(scores.chromeDanger && !["safe", "accepted"].includes(scores.chromeDanger));
-  const overridden = scores.safeBrowsingFlagged === true || chromeDangerFlagged;
-  const finalScore = overridden ? Math.min(total, 10) : total;
+  const threatIntelFlagged = scores.safeBrowsingFlagged === true ||
+    scores.malwareBazaarFlagged === true ||
+    scores.urlhausFlagged === true ||
+    chromeDangerFlagged;
+  const overridden = threatIntelFlagged;
+  let finalScore = overridden ? Math.min(total, 10) : total;
+  if (!overridden && scores.hasExploits) {
+    finalScore = Math.min(finalScore, 40);
+  }
 
   return {
     trustScore: Math.round(Math.max(0, Math.min(100, finalScore))),
     rawWeightedScore: Math.round(total),
     safeBrowsingOverride: overridden,
+    malwareBazaarFlagged: Boolean(scores.malwareBazaarFlagged),
+    urlhausFlagged: Boolean(scores.urlhausFlagged),
     chromeDangerFlagged,
     checksApplicable: Object.values(factors).filter((f) => f.applicable).length,
     checksTotal: Object.keys(factors).length,

@@ -203,11 +203,16 @@ function defaultSettings() {
     emailScanEnabled: false,
     emailScanIntervalMinutes: 15,
     emailMaxMessagesPerScan: 25,
+    // Additional Threat Intelligence & AI keys
+    geminiApiKey: "",
+    malwareBazaarApiKey: "",
+    urlhausApiKey: "",
+    // On-Page Visual HUDs & Notifications
+    enableWebsiteScanOverlay: true,
+    enableDownloadOverlay: true,
+    bypassedWarningDomains: [],
     // On-device AI narrative (Chrome's built-in Prompt API / Gemini Nano) —
-    // see modules/aiAnalysis.js. Nothing ever leaves the device for this
-    // feature, but it's still opt-in because the *first* use on a given
-    // device can trigger a multi-gigabyte model download — that's the
-    // tradeoff, not privacy.
-    aiExplanationsEnabled: false
+    // see modules/aiAnalysis.js.
+    aiExplanationsEnabled: true
   };
 }
